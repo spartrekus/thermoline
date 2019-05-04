@@ -56,10 +56,13 @@
 
 
 
-int usersel   = 1;
-int show_menu = 1;
-char fichier[PATH_MAX];
-char statusline[PATH_MAX];
+ int usersel   = 1;
+ int show_menu = 1;
+ int menu_usersel = 0;
+ char fichier[PATH_MAX];
+ char statusline[PATH_MAX];
+ char strmenu[PATH_MAX];
+
 
 
 
@@ -138,16 +141,29 @@ void nrunwith( char *cmdapp, char *filesource )
 
 
 
-void nls()
+void nls( int foosel )
 { 
-   DIR *dirp;
+   DIR *dirp; 
+   int foocounter = 1;
+   strncpy( strmenu , "" , PATH_MAX );
    struct dirent *dp;
    dirp = opendir( "." );
    while  ((dp = readdir( dirp )) != NULL ) 
    {
          if (  strcmp( dp->d_name, "." ) != 0 )
          if (  strcmp( dp->d_name, ".." ) != 0 )
-             printf( "%s\n", dp->d_name );
+         {
+           if ( foocounter == foosel )  
+           {
+             printf( ">%s\n", dp->d_name );
+             strncpy( strmenu , dp->d_name , PATH_MAX );
+           }
+           else
+           {
+             printf( " %s\n", dp->d_name );
+           }
+           foocounter++;
+         }
    }
    closedir( dirp );
 }
@@ -158,14 +174,17 @@ void nls()
 ///////////////////////////////////////////
 void readfile( char *filesource )
 {
-   FILE *source; 
-   int ch ; 
+  FILE *source; 
+  int ch ; 
+  if ( fexist( filesource ) == 1 ) 
+  {
    source = fopen( filesource , "r");
    while( ( ch = fgetc(source) ) != EOF )
    {
          printf( "%c", ch );
    }
    fclose(source);
+  }
 }
    
 
@@ -186,13 +205,15 @@ float cur_y = 0;
 
 
 
+
+
+
 ///////////////////////////////////////////
 void append_to_file( char *targetfile )
 {
    FILE *target;  
    char foostr[PATH_MAX];
-   target = fopen( targetfile , "ab+");
-
+   target = fopen( "datapoints.log" , "ab+");
      snprintf( foostr, PATH_MAX , "#%s\n" , fichier );
      fputs( foostr , target ); 
 
@@ -205,8 +226,15 @@ void append_to_file( char *targetfile )
      snprintf( foostr, PATH_MAX , "%lf;%lf" , point_calc_x, point_calc_y );
      fputs( foostr , target ); 
      fputs( "\n" , target ); 
-
    fclose( target );
+
+
+   target = fopen( targetfile , "ab+");
+     snprintf( foostr, PATH_MAX , "%lf;%lf" , point_calc_x, point_calc_y );
+     fputs( foostr , target ); 
+     fputs( "\n" , target ); 
+   fclose( target );
+
    strncpy( statusline, "Added points to file.", PATH_MAX );
 }
 
@@ -333,7 +361,7 @@ void readfileline( char *filesource )
 ////////////////////////////////////////
 int main( int argc, char *argv[])
 {
-   int i ; 
+   int i ; int foochg = 0;
    if ( argc >= 2)
    {
           for( i = 1 ; i < argc ; i++) 
@@ -394,6 +422,7 @@ int main( int argc, char *argv[])
           printf( "  'x': nls\n" );
           printf( "  'w': write/append point calc (x,y)\n" );
           printf( "  'c': cat output file\n" );
+          printf( "  'a': cat datapoints log file\n" );
           printf( "  'v': vim output file\n" );
           printf( "  '^o': open data file\n" );
           printf( "  'r': view data file\n" );
@@ -412,10 +441,14 @@ int main( int argc, char *argv[])
        if ( ch == 'q' ) gameover = 1;
        else if ( ch == 'j' )  usersel++; 
        else if ( ch == 'k' )  usersel--; 
+       else if ( ch == 'g' )  usersel = 1;
 
-       else if ( ch == 'c' ) { readfile( "output.csv" ); printf("<Press Key>");  getchar();  }
-       else if ( ch == 'x' ) { nls( ); printf("<Press Key>");  getchar();  }
+       else if ( ch == 'c' ) { readfile( "output.csv" );      printf("<Press Key>");  getchar();  }
+       else if ( ch == 'a' ) { readfile( "datapoints.log" );  printf("<Press Key>");  getchar();  }
+
+       else if ( ch == 'x' ) { nls( 0 ); printf("<Press Key>");  getchar();  }
        else if ( ch == 'v' ) { system( " vim  output.csv" ); }
+
 
        else if ( ch == 'r' ) { nrunwith( " less ", fichier ); }
        else if ( ch == 'e' ) { nrunwith( " vim ", fichier ); }
@@ -445,22 +478,38 @@ int main( int argc, char *argv[])
            disable_waiting_for_enter();
        }
 
+       else if ( ch == 8 )
+       {
+                point_sel_a_x = 0;
+                point_sel_a_y = 0;
+                point_sel_b_x = 0;
+                point_sel_b_y = 0;
+       }
+
        else if ( ch == 15 )
        {
           strncpy( strmsg , fichier, PATH_MAX );
+          strncpy( strmenu, "" , PATH_MAX );
+          foochg = 0;  
           while( gameover == 0 ) 
           {
             clrscr();
             home();
             printf( "LS:\n");
-            nls();
+            nls( menu_usersel );
+	    if ( foochg   ==  1 ) strncpy( strmsg, strmenu, PATH_MAX ); 
+            foochg = 0;  
             printf( "\n");
             printf( "(Current File: %s)\n", fichier );
             printf( "File: " );
             printf( "%s", strmsg );
             ch = getchar(); 
-            if      ( ch == 27 ) gameover = 1;
-            else if ( ch == 10 ) { gameover = 1;  strncpy( fichier, strmsg, PATH_MAX ); }
+            if       ( ch == 27 )  gameover = 1;
+            else if  ( ch == 15 )  gameover = 1;
+            else if  ( ch == 21 ) { menu_usersel--; foochg = 1; } 
+            else if  ( ch == 4  ) { menu_usersel++; foochg = 1; } 
+            else if  ( ch == 5  ) { gameover = 1;  strncpy( fichier, strmenu , PATH_MAX ); }
+            else if  ( ch == 10 ) { gameover = 1;  strncpy( fichier, strmsg, PATH_MAX ); }
 	    else if ( ( ch == 8 )  || ( ch == 127 ) )  
             {
                if ( strlen( strmsg ) >= 1 ) 
