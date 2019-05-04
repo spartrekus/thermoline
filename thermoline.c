@@ -191,10 +191,21 @@ void append_to_file( char *targetfile )
 {
    FILE *target;  
    char foostr[PATH_MAX];
-   snprintf( foostr, PATH_MAX , "%lf;%lf" , point_calc_x, point_calc_y );
    target = fopen( targetfile , "ab+");
-   fputs( foostr , target ); 
-   fputs( "\n" , target ); 
+
+     snprintf( foostr, PATH_MAX , "#%s\n" , fichier );
+     fputs( foostr , target ); 
+
+     snprintf( foostr, PATH_MAX , "#[A] (%lf;%lf)\n" , point_sel_a_x, point_sel_a_y );
+     fputs( foostr , target ); 
+
+     snprintf( foostr, PATH_MAX , "#[B] (%lf;%lf)\n" , point_sel_b_x, point_sel_b_y );
+     fputs( foostr , target ); 
+
+     snprintf( foostr, PATH_MAX , "%lf;%lf" , point_calc_x, point_calc_y );
+     fputs( foostr , target ); 
+     fputs( "\n" , target ); 
+
    fclose( target );
    strncpy( statusline, "Added points to file.", PATH_MAX );
 }
@@ -529,13 +540,6 @@ int main( int argc, char *argv[])
    printf( "\n");
    return 0; 
 }
-
-
-
-
-
-
-
 
 
 
